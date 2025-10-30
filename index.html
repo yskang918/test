@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>트렌디 To-Do List</title>
+    <title>바이브 코딩 To-Do List (완성)</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 변수 설정 및 기본 스타일 (이전 단계의 트렌디 디자인 유지) */
         :root {
-            --primary-color: #6a89cc; /* 부드러운 파란색 */
-            --secondary-color: #f6e58d; /* 부드러운 노란색 */
-            --background-light: #f7f1e3; /* 밝은 베이지 배경 */
+            --primary-color: #6a89cc; 
+            --secondary-color: #f6e58d; 
+            --background-light: #f7f1e3;
             --text-dark: #333;
             --text-light: #fff;
             --border-light: #dfe4ea;
             --shadow-light: rgba(0, 0, 0, 0.08);
+            --delete-color: #eb4d4b;
         }
 
         body {
@@ -21,24 +23,217 @@
             background-color: var(--background-light);
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* 상단 정렬로 변경 */
-            min-height: 100vh; /* 전체 화면 높이 사용 */
+            align-items: flex-start;
+            min-height: 100vh;
             margin: 0;
-            padding: 50px 20px; /* 상하 패딩 추가 */
-            box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+            padding: 50px 20px;
+            box-sizing: border-box;
         }
 
         .container {
             background: var(--text-light);
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px var(--shadow-light); /* 부드러운 그림자 */
+            box-shadow: 0 10px 30px var(--shadow-light);
             width: 100%;
-            max-width: 450px; /* 최대 너비 설정 */
-            margin-top: 20px; /* 상단 여백 추가 */
+            max-width: 450px;
+            margin-top: 20px;
         }
 
         h1 {
             text-align: center;
             color: var(--primary-color);
-            margin-bottom:
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        #todo-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        #todo-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        #add-button {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #add-button:hover {
+            background-color: #5375bd;
+            transform: translateY(-2px);
+        }
+        #add-button:active {
+            transform: translateY(0);
+        }
+
+        #todo-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        /* === ⭐️ 할 일 항목 스타일 추가/수정 === */
+        .todo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 10px;
+            margin-bottom: 10px;
+            background-color: #fff; /* 항목 배경을 흰색으로 유지 */
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+            cursor: pointer; /* 클릭 가능한 항목임을 표시 */
+        }
+
+        /* 완료된 항목 스타일 */
+        .todo-item.completed {
+            background-color: #e8eaf6; /* 연한 파란색 배경 */
+            color: #999;
+            text-decoration: line-through;
+            opacity: 0.8;
+            border-left: 5px solid var(--primary-color); /* 왼쪽 바 추가 */
+        }
+        
+        .todo-item span {
+            flex-grow: 1;
+            padding-right: 10px;
+            font-weight: 400;
+        }
+        
+        /* 삭제 버튼 스타일 */
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--delete-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            padding: 0;
+            line-height: 1;
+        }
+        .delete-btn:hover {
+            color: #c0392b;
+        }
+        
+        /* 모바일 반응형 디자인 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+                margin-top: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            body {
+                padding: 20px 10px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            #input-area {
+                flex-direction: column;
+                gap: 15px;
+            }
+            #add-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>나만의 To-Do List ✨</h1>
+        
+        <div id="input-area">
+            <input type="text" id="todo-input" placeholder="새로운 할 일을 입력하세요" maxlength="50">
+            <button id="add-button">추가하기</button>
+        </div>
+
+        <ul id="todo-list">
+            
+        </ul>
+        
+        </div>
+    
+    <script>
+        const todoInput = document.getElementById('todo-input');
+        const addButton = document.getElementById('add-button');
+        const todoList = document.getElementById('todo-list');
+
+        // 1. 할 일 항목을 생성하고 DOM에 추가하는 함수
+        function addTodoItem(taskText) {
+            // 입력값이 비어 있으면 경고
+            if (taskText.trim() === "") {
+                alert("할 일을 입력해 주세요!");
+                return;
+            }
+
+            // <li> 요소 생성
+            const listItem = document.createElement('li');
+            listItem.classList.add('todo-item');
+
+            // 할 일 내용 <span> 생성
+            const taskSpan = document.createElement('span');
+            taskSpan.textContent = taskText.trim();
+            
+            // 삭제 버튼 <button> 생성
+            const deleteButton = document.createElement('button');
+            deleteButton.classList.add('delete-btn');
+            deleteButton.innerHTML = '&#10005;'; // X 표시 (HTML 엔티티)
+            
+            // 요소들을 <li>에 추가
+            listItem.appendChild(taskSpan);
+            listItem.appendChild(deleteButton);
+            
+            // <ul> 목록에 <li> 추가
+            todoList.appendChild(listItem);
+            
+            // 입력창 비우기
+            todoInput.value = '';
+
+            // 2. 완료 토글 이벤트 리스너 추가 (항목 클릭 시)
+            taskSpan.addEventListener('click', function() {
+                listItem.classList.toggle('completed');
+            });
+
+            // 3. 삭제 이벤트 리스너 추가 (삭제 버튼 클릭 시)
+            deleteButton.addEventListener('click', function() {
+                // 부모 요소(li)를 DOM에서 제거
+                todoList.removeChild(listItem); 
+            });
+        }
+
+        // '추가하기' 버튼 클릭 이벤트
+        addButton.addEventListener('click', function() {
+            addTodoItem(todoInput.value);
+        });
+
+        // 엔터 키 입력 이벤트 (더 빠른 입력)
+        todoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTodoItem(todoInput.value);
+            }
+        });
+
+    </script>
+</body>
+</html>
