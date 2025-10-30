@@ -1,59 +1,287 @@
-<div>Teachable Machine Image Model</div>
-<button type="button" onclick="init()">Start</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "./my_model/";
-
-    let model, webcam, labelContainer, maxPredictions;
-
-    // Load the image model and setup the webcam
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 이미지 인식 센터</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 변수 설정 (다크 모드 유지) */
+        :root {
+            --bg-color: #1e1e2f; 
+            --card-color: #27293d;
+            --text-light: #f0f0f0;
+            --primary-gradient: linear-gradient(45deg, #a77dff, #6a5acd);
+            --primary-color: #6a5acd;
+            --highlight-color: #ff9f43; /* 강조색 추가 */
+            --shadow-dark: rgba(0, 0, 0, 0.4);
         }
-    }
 
-    async function loop() {
-        webcam.update(); // update the webcam frame
-        await predict();
-        window.requestAnimationFrame(loop);
-    }
-
-    // run the webcam image through the image model
-    async function predict() {
-        // predict can take in an image, video or canvas html element
-        const prediction = await model.predict(webcam.canvas);
-        for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+            min-height: 100vh;
         }
-    }
-</script>
+        
+        h1 {
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: var(--text-light);
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(106, 90, 205, 0.5); /* 은은한 네온 효과 */
+        }
+
+        /* 메인 컨테이너: 웹캠과 버튼을 중앙에 크게 배치 */
+        .main-recognition-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px; /* 전체 앱의 최대 너비를 넓게 설정 */
+            margin-bottom: 40px;
+        }
+
+        /* 웹캠 컨테이너: 가장 큰 면적을 차지하도록 설정 */
+        #webcam-container {
+            width: 100%; 
+            padding-bottom: 100%; /* 1:1 비율 유지를 위한 트릭 */
+            position: relative;
+            border: 5px solid var(--primary-color);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 30px var(--shadow-dark);
+            margin-bottom: 30px;
+        }
+        #webcam-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover; /* 캔버스가 컨테이너를 가득 채우도록 */
+        }
+
+        /* 시작 버튼 스타일 (웹캠 아래) */
+        #start-button {
+            padding: 15px 40px; /* 버튼 크기 키움 */
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-light);
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px var(--shadow-dark);
+            transition: all 0.3s ease;
+            width: 80%; /* 중앙에 넓게 배치 */
+        }
+        #start-button:hover {
+            transform: translateY(-3px);
+        }
+        #start-button:disabled {
+            background: gray;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 예측 결과 컨테이너 (웹캠 아래, 더 넓은 영역 사용) */
+        #label-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 25px;
+            background-color: var(--card-color);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px var(--shadow-dark);
+        }
+
+        /* 각 예측 항목 스타일 */
+        .prediction-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-bottom: 1px solid rgba(240, 240, 240, 0.1);
+            transition: all 0.2s ease;
+        }
+        .prediction-item.highlighted {
+            background-color: rgba(255, 159, 67, 0.1); /* 강조 배경색 */
+            border-left: 5px solid var(--highlight-color);
+            border-radius: 5px;
+            padding-left: 15px;
+        }
+        .prediction-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .class-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+        .highlighted .class-name {
+            color: var(--highlight-color);
+            font-size: 1.1rem;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background-color: #3b3d57; 
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: width 0.3s ease-out; 
+        }
+        .highlighted .progress-fill {
+            background: linear-gradient(45deg, var(--highlight-color), #ffc048); /* 강조 그라데이션 */
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 550px) {
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+            .main-recognition-area {
+                margin-bottom: 20px;
+            }
+            #start-button {
+                width: 100%;
+                padding: 12px 20px;
+            }
+            #label-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>AI 비전 센터: 이미지 인식</h1>
+    
+    <div class="main-recognition-area">
+        <div id="webcam-container"></div>
+        <button type="button" id="start-button" onclick="init()">모델 시작 및 웹캠 활성화</button> 
+    </div>
+    
+    <div id="label-container">
+        <div style="text-align: center; color: gray;">
+            👆 위 버튼을 눌러 카메라를 켜고 인식을 시작하세요.
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "./my_model/"; 
+        let model, webcam, labelContainer, maxPredictions;
+        let isModelLoaded = false;
+
+        async function init() {
+            const startButton = document.getElementById('start-button');
+            startButton.disabled = true;
+            startButton.textContent = "모델 로딩 중...";
+
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+            isModelLoaded = true;
+
+            const flip = true; 
+            // 웹캠 크기를 컨테이너 크기에 맞춰 동적으로 조정
+            const container = document.getElementById('webcam-container');
+            const size = container.offsetWidth; 
+            webcam = new tmImage.Webcam(size, size, flip); 
+            
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            container.innerHTML = ''; // 기존 내용 제거
+            container.appendChild(webcam.canvas);
+            
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = '';
+
+            // 예측 항목을 시각화 구조로 생성
+            for (let i = 0; i < maxPredictions; i++) { 
+                const item = document.createElement("div");
+                item.classList.add('prediction-item');
+                
+                const nameDiv = document.createElement("div");
+                nameDiv.classList.add('class-name');
+                item.appendChild(nameDiv);
+                
+                const progressBar = document.createElement("div");
+                progressBar.classList.add('progress-bar');
+                const progressFill = document.createElement("div");
+                progressFill.classList.add('progress-fill');
+                progressBar.appendChild(progressFill);
+                item.appendChild(progressBar);
+
+                labelContainer.appendChild(item);
+            }
+            
+            startButton.textContent = "AI 인식 활성화됨";
+        }
+
+        async function loop() {
+            if (webcam && isModelLoaded) {
+                webcam.update(); 
+                await predict();
+            }
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            let highestProb = -1;
+            let highestIndex = -1;
+            
+            // 1. 최고 확률 항목 찾기
+            for(let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > highestProb) {
+                    highestProb = prediction[i].probability;
+                    highestIndex = i;
+                }
+            }
+
+            // 2. DOM 업데이트 및 하이라이트 적용
+            for (let i = 0; i < maxPredictions; i++) {
+                const item = labelContainer.childNodes[i];
+                const classNameDiv = item.querySelector('.class-name');
+                const progressFillDiv = item.querySelector('.progress-fill');
+                
+                const probability = prediction[i].probability;
+                const probabilityPercent = (probability * 100).toFixed(1);
+                
+                // 텍스트 업데이트
+                classNameDiv.innerHTML = `${prediction[i].className} (${probabilityPercent}%)`;
+                
+                // 막대 그래프 업데이트
+                progressFillDiv.style.width = probabilityPercent + '%';
+
+                // ⭐️ 바이브 코딩 수정: 최고 확률 항목 강조
+                if (i === highestIndex) {
+                    item.classList.add('highlighted');
+                } else {
+                    item.classList.remove('highlighted');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
